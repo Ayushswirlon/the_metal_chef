@@ -1,23 +1,30 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useInView } from "react-intersection-observer";
 import { motion, useSpring, useTransform } from "framer-motion";
 
-function AnimatedCounter({ value, duration = 2, delay = 0 }) {
+const AnimatedCounter = React.memo(({ value, duration = 2, delay = 0 }) => {
   const [ref, inView] = useInView({
     triggerOnce: true,
-    threshold: 0.5,
+    threshold: 0.3,
+    rootMargin: "50px",
   });
 
   const [isAnimating, setIsAnimating] = useState(false);
-  const numericValue = parseInt(value.replace(/[^0-9.]/g, ""));
-  const hasDecimal = value.includes(".");
-  const decimalPlaces = hasDecimal ? value.split(".")[1].length : 0;
 
+  // Memoize numeric calculations
+  const { numericValue, hasDecimal, decimalPlaces } = useMemo(() => {
+    const num = parseInt(value.replace(/[^0-9.]/g, ""));
+    const hasDecimal = value.includes(".");
+    const decimalPlaces = hasDecimal ? value.split(".")[1].length : 0;
+    return { numericValue: num, hasDecimal, decimalPlaces };
+  }, [value]);
+
+  // Optimize spring configuration
   const spring = useSpring(0, {
     duration: duration * 1000,
     delay: delay * 1000,
-    stiffness: 50,
-    damping: 30,
+    stiffness: 30,
+    damping: 20,
   });
 
   useEffect(() => {
@@ -27,31 +34,15 @@ function AnimatedCounter({ value, duration = 2, delay = 0 }) {
     }
   }, [inView, isAnimating, spring, numericValue]);
 
-  const displayed = useTransform(spring, (latest) => {
-    const formatted = hasDecimal
-      ? latest.toFixed(decimalPlaces)
-      : Math.round(latest).toString();
-    return formatted;
-  });
+  const displayed = useTransform(spring, (latest) =>
+    hasDecimal ? latest.toFixed(decimalPlaces) : Math.round(latest).toString()
+  );
 
   return (
-    <motion.div
-      ref={ref}
-      className="relative inline-flex items-center justify-center"
-    >
-      <motion.span className="tabular-nums text-white font-bold">
-        {displayed}
-      </motion.span>
-      {isAnimating && (
-        <motion.div
-          initial={{ scale: 1.2, opacity: 0 }}
-          animate={{ scale: 1, opacity: [0, 1, 0] }}
-          transition={{ duration: 0.5, delay: delay }}
-          className="absolute inset-0 bg-white/10 rounded-full"
-        />
-      )}
+    <motion.div ref={ref} className="inline-flex items-center justify-center">
+      <motion.span className="tabular-nums">{displayed}</motion.span>
     </motion.div>
   );
-}
+});
 
 export default AnimatedCounter;

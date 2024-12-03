@@ -276,3 +276,23 @@ html {
   opacity: 1;
   transform: translateY(0);
 }
+
+@layer utilities {
+  .hardware-accelerated {
+    transform: translateZ(0);
+    backface-visibility: hidden;
+    perspective: 1000;
+  }
+  
+  .contain-content {
+    contain: content;
+  }
+  
+  .contain-paint {
+    contain: paint;
+  }
+  
+  .contain-strict {
+    contain: strict;
+  }
+}

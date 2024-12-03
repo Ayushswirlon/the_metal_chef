@@ -7,7 +7,7 @@ function About() {
   }, []);
 
   return (
-    <div className="relative z-10 pt-20">
+    <div className="relative z-10 pt-16">
       <div className="about-container">
         <motion.div
           initial={{ opacity: 0 }}
@@ -110,7 +110,7 @@ function About() {
             initial={{ opacity: 0, y: 50 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8 }}
-            className="py-20"
+            className="py-12"
           >
             <h2 className="text-3xl font-bold text-center mb-12 bg-clip-text text-transparent bg-gradient-to-r from-gray-100 to-gray-300">
               Why Choose Us

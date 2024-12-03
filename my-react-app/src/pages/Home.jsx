@@ -1,13 +1,75 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useCallback, useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useLoadScript, GoogleMap, Marker } from "@react-google-maps/api";
 import { usePerformanceOptimizations } from "../hooks/usePerformanceOptimizations";
+import { LazyImage } from "../components/LazyImage";
 import "../index.css";
 import AnimatedCounter from "../components/AnimatedCounter";
 
+// Extracted components for better performance
+const ServiceCard = React.memo(({ service, index, shouldReduceMotion }) => (
+  <motion.div
+    key={index}
+    initial={shouldReduceMotion ? { opacity: 1 } : { opacity: 0, y: 50 }}
+    whileInView={shouldReduceMotion ? { opacity: 1, y: 0 } : { opacity: 1, y: 0 }}
+    transition={{ delay: shouldReduceMotion ? 0 : index * 0.1 }}
+    whileHover={shouldReduceMotion ? {} : { y: -10, scale: 1.02 }}
+    className="bg-gradient-to-br from-zinc-800/50 to-zinc-900/50 p-8 rounded-2xl backdrop-blur-sm border border-gray-700/30 shadow-2xl group hardware-accelerated contain-content"
+  >
+    <div className="text-4xl mb-4 group-hover:scale-110 transition-transform">
+      {service.icon}
+    </div>
+    <h3 className="text-xl font-semibold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-gray-100 to-gray-300">
+      {service.title}
+    </h3>
+    <p className="text-gray-400 leading-relaxed">{service.description}</p>
+  </motion.div>
+));
+
+const StatCard = React.memo(({ stat, index, shouldReduceMotion }) => (
+  <motion.div
+    key={index}
+    initial={shouldReduceMotion ? { opacity: 1 } : { opacity: 0, y: 20 }}
+    whileInView={shouldReduceMotion ? { opacity: 1, y: 0 } : { opacity: 1, y: 0 }}
+    transition={{ delay: shouldReduceMotion ? 0 : index * 0.1 }}
+    className="bg-gradient-to-br from-zinc-800/50 to-zinc-900/50 p-6 rounded-2xl backdrop-blur-sm border border-gray-700/30 text-center group hover:border-gray-500/50 transition-all duration-300 contain-content"
+  >
+    <div className="text-4xl mb-4 group-hover:scale-110 transition-transform duration-300">
+      {stat.icon}
+    </div>
+    <div className="text-3xl font-bold text-white mb-2">
+      <AnimatedCounter value={stat.number} />
+      <span className="text-gray-300 text-xl ml-1">
+        {stat.number.includes("+") ? "+" : ""}
+        {stat.number.includes("%") ? "%" : ""}
+      </span>
+    </div>
+    <p className="text-gray-400 mt-2">{stat.label}</p>
+  </motion.div>
+));
+
 function Home() {
-  // Add performance optimizations hook
   const { shouldReduceMotion, isMobile } = usePerformanceOptimizations();
+  const [currentServiceIndex, setCurrentServiceIndex] = useState(0);
+
+  // Memoized handlers
+  const handleDiscoverClick = useCallback(() => {
+    // Implement your click handler
+  }, []);
+
+  // Memoized map options
+  const mapOptions = useMemo(() => ({
+    disableDefaultUI: isMobile,
+    zoomControl: !isMobile,
+    styles: [
+      {
+        featureType: "all",
+        elementType: "geometry",
+        stylers: [{ color: "#242f3e" }],
+      },
+      // ... other styles
+    ],
+  }), [isMobile]);
 
   // Memoize static data
   const companies = useMemo(
@@ -54,7 +116,7 @@ function Home() {
         title: "Aluminum Ingot Manufacturing",
         description:
           "Premium quality aluminum ingots with precise composition control and industry-leading purity levels.",
-        icon: "🏭", // You can replace these with proper icons
+        icon: "🏭",
       },
       {
         title: "Scrap Collection",
@@ -89,6 +151,14 @@ function Home() {
     ],
     []
   );
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentServiceIndex((prevIndex) => (prevIndex + 1) % services.length);
+    }, 5000); // Change every 5 seconds
+
+    return () => clearInterval(interval);
+  }, [services.length]);
 
   // Optimize motion variants based on device capabilities
   const motionProps = useMemo(
@@ -127,19 +197,19 @@ function Home() {
 
   return (
     <div className="min-h-screen text-white relative overflow-hidden">
-      {/* Main background */}
-      <div className="fixed inset-0 bg-gradient-to-br from-zinc-900 via-zinc-800 to-zinc-900" />
+      {/* Main background with CSS containment */}
+      <div className="fixed inset-0 bg-gradient-to-br from-zinc-900 via-zinc-800 to-zinc-900 contain-paint" />
 
-      {/* Optimized ambient glow for mobile */}
-      <div className="fixed inset-0">
+      {/* Optimized ambient glow with CSS containment */}
+      <div className="fixed inset-0 contain-paint">
         <div
           className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
           style={{
             width: isMobile ? "120vw" : "140vw",
             height: isMobile ? "120vh" : "140vh",
-            background:
-              "radial-gradient(circle, rgba(255,255,255,0.05) 0%, transparent 60%)",
+            background: "radial-gradient(circle, rgba(255,255,255,0.05) 0%, transparent 60%)",
             filter: isMobile ? "blur(60px)" : "blur(90px)",
+            contain: "strict",
           }}
         />
       </div>
@@ -148,19 +218,25 @@ function Home() {
       <div className="relative z-10">
         {/* Hero Section */}
         <div className="min-h-screen flex flex-col items-center justify-center px-4 relative">
-          <motion.div {...motionProps} className="text-center space-y-8">
+          <motion.div {...motionProps} className="text-center space-y-4">
             <motion.div
-              initial={
-                shouldReduceMotion ? { opacity: 1 } : { scale: 0.9, opacity: 0 }
-              }
+              initial={shouldReduceMotion ? { opacity: 1 } : { scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{
                 duration: shouldReduceMotion ? 0.3 : 0.8,
                 type: "spring",
                 stiffness: shouldReduceMotion ? 50 : 100,
               }}
-              className="relative inline-block"
+              className="mb-2"
             >
+              <img 
+                src="/src/assets/The Metal Chef Logo.png"
+                alt="The Metal Chef Logo"
+                className="h-48 md:h-64 w-auto mx-auto"
+              />
+            </motion.div>
+
+            <motion.div className="relative inline-block">
               <h1 className="text-5xl md:text-7xl lg:text-8xl font-bold text-center bg-clip-text text-transparent bg-gradient-to-r from-gray-100 via-gray-300 to-gray-100 pb-2 relative z-10">
                 The Metal Chef
               </h1>
@@ -276,18 +352,13 @@ function Home() {
           </div>
         </div>
 
-        {/* Replace Companies Section with Achievements & Testimonials */}
-        <div className="py-32 px-4">
+        {/* Replace Companies Section with Achievements */}
+        <div className="py-16 px-4">
           {/* Achievements Counter Section */}
           <motion.div
-            initial={
-              shouldReduceMotion ? { opacity: 1 } : { opacity: 0, y: 20 }
-            }
-            whileInView={
-              shouldReduceMotion ? { opacity: 1, y: 0 } : { opacity: 1, y: 0 }
-            }
+            initial={shouldReduceMotion ? { opacity: 1 } : { opacity: 0, y: 20 }}
+            whileInView={shouldReduceMotion ? { opacity: 1, y: 0 } : { opacity: 1, y: 0 }}
             transition={{ duration: shouldReduceMotion ? 0.3 : 0.8 }}
-            className="mb-32"
           >
             <h2 className="text-4xl font-bold text-center mb-16 bg-clip-text text-transparent bg-gradient-to-r from-gray-100 to-gray-300">
               Our Impact in Numbers
@@ -300,280 +371,165 @@ function Home() {
                 { number: "99.9", label: "Quality Score", icon: "⭐" },
                 { number: "25+", label: "Years of Excellence", icon: "🏆" },
               ].map((stat, index) => (
-                <motion.div
-                  key={index}
-                  initial={
-                    shouldReduceMotion ? { opacity: 1 } : { opacity: 0, y: 20 }
-                  }
-                  whileInView={
-                    shouldReduceMotion
-                      ? { opacity: 1, y: 0 }
-                      : { opacity: 1, y: 0 }
-                  }
-                  transition={{ delay: shouldReduceMotion ? 0 : index * 0.1 }}
-                  className="bg-gradient-to-br from-zinc-800/50 to-zinc-900/50 p-6 rounded-2xl backdrop-blur-sm border border-gray-700/30 text-center group hover:border-gray-500/50 transition-all duration-300"
-                >
-                  <div className="text-4xl mb-4 group-hover:scale-110 transition-transform duration-300">
-                    {stat.icon}
-                  </div>
-                  <div className="text-3xl font-bold text-white mb-2">
-                    <AnimatedCounter value={stat.number} />
-                    <span className="text-gray-300 text-xl ml-1">
-                      {stat.number.includes("+") ? "+" : ""}
-                      {stat.number.includes("%") ? "%" : ""}
-                    </span>
-                  </div>
-                  <p className="text-gray-400 mt-2">{stat.label}</p>
-                </motion.div>
+                <StatCard
+                  key={stat.label}
+                  stat={stat}
+                  index={index}
+                  shouldReduceMotion={shouldReduceMotion}
+                />
               ))}
             </div>
           </motion.div>
-
-          {/* Testimonials Section */}
-          <div className="py-20">
-            <motion.h2
-              initial={
-                shouldReduceMotion ? { opacity: 1 } : { opacity: 0, y: 20 }
-              }
-              whileInView={
-                shouldReduceMotion ? { opacity: 1, y: 0 } : { opacity: 1, y: 0 }
-              }
-              transition={{ duration: shouldReduceMotion ? 0.3 : 0.8 }}
-              className="text-4xl font-bold text-center mb-16 bg-clip-text text-transparent bg-gradient-to-r from-gray-100 to-gray-300"
-            >
-              What Our Customers Say
-            </motion.h2>
-
-            <div className="grid md:grid-cols-3 gap-8">
-              {[
-                {
-                  name: "John Smith",
-                  role: "Production Manager at TechMetals",
-                  image: "https://randomuser.me/api/portraits/men/1.jpg",
-                  quote:
-                    "The quality of aluminum ingots from The Metal Chef is consistently exceptional. Their attention to detail and commitment to quality has made them our trusted supplier for years.",
-                },
-                {
-                  name: "Sarah Johnson",
-                  role: "CEO at InnovateAlloys",
-                  image: "https://randomuser.me/api/portraits/women/1.jpg",
-                  quote:
-                    "Working with The Metal Chef has transformed our manufacturing process. Their custom solutions and reliable delivery have been instrumental in our growth.",
-                },
-                {
-                  name: "Michael Chen",
-                  role: "Director at GlobalCast Industries",
-                  image: "https://randomuser.me/api/portraits/men/2.jpg",
-                  quote:
-                    "The Metal Chef's sustainable practices and premium quality products align perfectly with our values. They're not just a supplier, they're a strategic partner.",
-                },
-              ].map((testimonial, index) => (
-                <motion.div
-                  key={index}
-                  initial={
-                    shouldReduceMotion ? { opacity: 1 } : { opacity: 0, y: 20 }
-                  }
-                  whileInView={
-                    shouldReduceMotion
-                      ? { opacity: 1, y: 0 }
-                      : { opacity: 1, y: 0 }
-                  }
-                  transition={{ delay: shouldReduceMotion ? 0 : index * 0.1 }}
-                  className="bg-gradient-to-br from-zinc-800/50 to-zinc-900/50 p-8 rounded-2xl backdrop-blur-sm border border-gray-700/30 relative group"
-                >
-                  {/* Quote Icon */}
-                  <div className="absolute -top-4 -left-4 w-8 h-8 bg-gradient-to-r from-gray-200 via-gray-300 to-gray-200 rounded-full flex items-center justify-center text-zinc-900 font-bold text-xl">
-                    "
-                  </div>
-
-                  <div className="flex items-center mb-6">
-                    <motion.img
-                      whileHover={{ scale: 1.1 }}
-                      src={testimonial.image}
-                      alt={testimonial.name}
-                      className="w-16 h-16 rounded-full border-2 border-gray-700/30"
-                    />
-                    <div className="ml-4">
-                      <h3 className="text-xl font-semibold bg-clip-text text-transparent bg-gradient-to-r from-gray-100 to-gray-300">
-                        {testimonial.name}
-                      </h3>
-                      <p className="text-gray-400">{testimonial.role}</p>
-                    </div>
-                  </div>
-
-                  <p className="text-gray-300 leading-relaxed">
-                    {testimonial.quote}
-                  </p>
-
-                  {/* Rating Stars */}
-                  <div className="mt-6 flex space-x-1">
-                    {[...Array(5)].map((_, i) => (
-                      <motion.span
-                        key={i}
-                        initial={
-                          shouldReduceMotion ? { opacity: 1 } : { opacity: 0 }
-                        }
-                        whileInView={
-                          shouldReduceMotion ? { opacity: 1 } : { opacity: 1 }
-                        }
-                        transition={{
-                          delay: shouldReduceMotion ? 0 : index * 0.1 + i * 0.1,
-                        }}
-                        className="text-yellow-400"
-                      >
-                        ⭐
-                      </motion.span>
-                    ))}
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-          </div>
         </div>
 
         {/* Services Section */}
-        <div className="py-32 px-4">
+        <div className="py-16 px-4">
           <motion.h2
-            initial={
-              shouldReduceMotion ? { opacity: 1 } : { opacity: 0, y: 20 }
-            }
-            whileInView={
-              shouldReduceMotion ? { opacity: 1, y: 0 } : { opacity: 1, y: 0 }
-            }
+            initial={shouldReduceMotion ? { opacity: 1 } : { opacity: 0, y: 20 }}
+            whileInView={shouldReduceMotion ? { opacity: 1, y: 0 } : { opacity: 1, y: 0 }}
             transition={{ duration: shouldReduceMotion ? 0.3 : 0.8 }}
             className="text-4xl font-bold text-center mb-16 bg-clip-text text-transparent bg-gradient-to-r from-gray-100 to-gray-300"
           >
             Our Services
           </motion.h2>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {services.map((service, index) => (
+          {/* Service Scroller */}
+          <div className="max-w-3xl mx-auto relative">
+            {/* Left Arrow */}
+            <button
+              onClick={() => setCurrentServiceIndex((prev) => 
+                prev === 0 ? services.length - 1 : prev - 1
+              )}
+              className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-12 z-10 text-white/70 hover:text-white transition-colors"
+              aria-label="Previous service"
+            >
               <motion.div
-                key={index}
-                initial={
-                  shouldReduceMotion ? { opacity: 1 } : { opacity: 0, y: 50 }
-                }
-                whileInView={
-                  shouldReduceMotion
-                    ? { opacity: 1, y: 0 }
-                    : { opacity: 1, y: 0 }
-                }
-                transition={{ delay: shouldReduceMotion ? 0 : index * 0.1 }}
-                whileHover={shouldReduceMotion ? {} : { y: -10, scale: 1.02 }}
-                className="bg-gradient-to-br from-zinc-800/50 to-zinc-900/50 p-8 rounded-2xl backdrop-blur-sm border border-gray-700/30 shadow-2xl group hardware-accelerated"
+                whileHover={{ x: -5 }}
+                className="bg-zinc-800/50 p-3 rounded-full backdrop-blur-sm border border-gray-700/30"
               >
-                <div className="text-4xl mb-4 group-hover:scale-110 transition-transform">
-                  {service.icon}
-                </div>
-                <h3 className="text-xl font-semibold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-gray-100 to-gray-300">
-                  {service.title}
-                </h3>
-                <p className="text-gray-400 leading-relaxed">
-                  {service.description}
-                </p>
+                ←
               </motion.div>
-            ))}
+            </button>
+
+            {/* Service Content */}
+            <motion.div
+              key={currentServiceIndex}
+              initial={{ opacity: 0, x: 100 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -100 }}
+              transition={{ duration: 0.5 }}
+              className="bg-gradient-to-br from-zinc-800/50 to-zinc-900/50 p-8 rounded-2xl backdrop-blur-sm border border-gray-700/30 shadow-2xl group hardware-accelerated contain-content"
+            >
+              <div className="text-6xl mb-6 text-center group-hover:scale-110 transition-transform">
+                {services[currentServiceIndex].icon}
+              </div>
+              <h3 className="text-2xl font-semibold mb-4 text-center bg-clip-text text-transparent bg-gradient-to-r from-gray-100 to-gray-300">
+                {services[currentServiceIndex].title}
+              </h3>
+              <p className="text-gray-400 leading-relaxed text-center text-lg">
+                {services[currentServiceIndex].description}
+              </p>
+            </motion.div>
+
+            {/* Right Arrow */}
+            <button
+              onClick={() => setCurrentServiceIndex((prev) => 
+                (prev + 1) % services.length
+              )}
+              className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-12 z-10 text-white/70 hover:text-white transition-colors"
+              aria-label="Next service"
+            >
+              <motion.div
+                whileHover={{ x: 5 }}
+                className="bg-zinc-800/50 p-3 rounded-full backdrop-blur-sm border border-gray-700/30"
+              >
+                →
+              </motion.div>
+            </button>
           </div>
         </div>
 
-        {/* Location Section */}
-        <div className="py-32 px-4">
-          <div className="container mx-auto px-4 py-32">
-            <motion.h2
-              initial={
-                shouldReduceMotion ? { opacity: 1 } : { opacity: 0, y: 20 }
-              }
-              whileInView={
-                shouldReduceMotion ? { opacity: 1, y: 0 } : { opacity: 1, y: 0 }
-              }
-              transition={{ duration: shouldReduceMotion ? 0.3 : 0.8 }}
-              className="text-4xl font-bold text-center mb-16 bg-clip-text text-transparent bg-gradient-to-r from-gray-100 to-gray-300"
-            >
-              Visit Our Facility
-            </motion.h2>
+        {/* Visit Our Facility Section */}
+        <div className="py-16 px-4">
+          <motion.h2
+            initial={shouldReduceMotion ? { opacity: 1 } : { opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8 }}
+            className="text-4xl font-bold text-center mb-16 bg-clip-text text-transparent bg-gradient-to-r from-gray-100 to-gray-300"
+          >
+            Visit Our Facility
+          </motion.h2>
 
-            <div className="grid md:grid-cols-2 gap-12 items-center">
+          <div className="max-w-7xl mx-auto">
+            <div className="grid md:grid-cols-2 gap-8 items-start">
+              {/* Map Section */}
               <motion.div
-                initial={
-                  shouldReduceMotion ? { opacity: 1 } : { opacity: 0, x: -50 }
-                }
-                whileInView={
-                  shouldReduceMotion
-                    ? { opacity: 1, x: 0 }
-                    : { opacity: 1, x: 0 }
-                }
-                transition={{ duration: shouldReduceMotion ? 0.3 : 0.8 }}
-                className="space-y-6"
+                initial={shouldReduceMotion ? { opacity: 1 } : { opacity: 0, x: -50 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.8 }}
+                className="h-[400px] rounded-2xl overflow-hidden border border-gray-700/30"
               >
-                <div className="bg-gradient-to-br from-zinc-800/50 to-zinc-900/50 p-8 rounded-2xl backdrop-blur-sm border border-gray-700/30">
-                  <h3 className="text-2xl font-semibold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-gray-100 to-gray-300">
-                    The Metal Chef Headquarters
-                  </h3>
-                  <div className="space-y-3 text-gray-300">
-                    <p>123 Industrial Avenue</p>
-                    <p>Sector 62, Noida</p>
-                    <p>Uttar Pradesh, India 201309</p>
-                    <p className="pt-4">📞 +91 98765 43210</p>
-                    <p>✉️ contact@metalchef.com</p>
-                  </div>
-                </div>
-
-                <div className="bg-gradient-to-br from-zinc-800/50 to-zinc-900/50 p-8 rounded-2xl backdrop-blur-sm border border-gray-700/30">
-                  <h3 className="text-xl font-semibold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-gray-100 to-gray-300">
-                    Operating Hours
-                  </h3>
-                  <div className="space-y-2 text-gray-300">
-                    <p>Monday - Friday: 9:00 AM - 6:00 PM</p>
-                    <p>Saturday: 9:00 AM - 2:00 PM</p>
-                    <p>Sunday: Closed</p>
-                  </div>
-                </div>
-              </motion.div>
-
-              {isLoaded && (
-                <motion.div
-                  initial={
-                    shouldReduceMotion ? { opacity: 1 } : { opacity: 0, x: 50 }
-                  }
-                  whileInView={
-                    shouldReduceMotion
-                      ? { opacity: 1, x: 0 }
-                      : { opacity: 1, x: 0 }
-                  }
-                  transition={{ duration: shouldReduceMotion ? 0.3 : 0.8 }}
-                  className="h-[400px] rounded-2xl overflow-hidden border border-gray-700/30"
-                >
+                {isLoaded && (
                   <GoogleMap
                     zoom={15}
                     center={mapCenter}
                     mapContainerClassName="w-full h-full"
-                    options={{
-                      disableDefaultUI: isMobile,
-                      zoomControl: !isMobile,
-                      styles: [
-                        {
-                          featureType: "all",
-                          elementType: "geometry",
-                          stylers: [{ color: "#242f3e" }],
-                        },
-                        {
-                          featureType: "all",
-                          elementType: "labels.text.stroke",
-                          stylers: [{ color: "#242f3e" }],
-                        },
-                        {
-                          featureType: "all",
-                          elementType: "labels.text.fill",
-                          stylers: [{ color: "#746855" }],
-                        },
-                        // Add more custom styles as needed
-                      ],
-                    }}
+                    options={mapOptions}
                   >
                     <Marker position={mapCenter} />
                   </GoogleMap>
-                </motion.div>
-              )}
+                )}
+              </motion.div>
+
+              {/* Address Information */}
+              <motion.div
+                initial={shouldReduceMotion ? { opacity: 1 } : { opacity: 0, x: 50 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.8 }}
+                className="bg-gradient-to-br from-zinc-800/50 to-zinc-900/50 p-8 rounded-2xl backdrop-blur-sm border border-gray-700/30 h-[400px] flex flex-col justify-center"
+              >
+                <div className="space-y-8">
+                  {/* Office Address */}
+                  <div className="space-y-2">
+                    <h3 className="text-xl font-semibold text-white flex items-center gap-2">
+                      <span>🏢</span> Office Address
+                    </h3>
+                    <div className="text-gray-300 ml-8">
+                      <p>84, Balaji Vihar</p>
+                      <p>Sanver Road</p>
+                      <p>Indore</p>
+                    </div>
+                  </div>
+
+                  {/* Plant Address */}
+                  <div className="space-y-2">
+                    <h3 className="text-xl font-semibold text-white flex items-center gap-2">
+                      <span>🏭</span> Plant Address
+                    </h3>
+                    <div className="text-gray-300 ml-8">
+                      <p>Survey No. 30</p>
+                      <p>Gram Jakhya</p>
+                      <p>Sanver Road</p>
+                      <p>Indore</p>
+                    </div>
+                  </div>
+
+                  {/* Contact Information */}
+                  <div className="space-y-2">
+                    <h3 className="text-xl font-semibold text-white flex items-center gap-2">
+                      <span>📞</span> Contact Us
+                    </h3>
+                    <div className="text-gray-300 ml-8 space-y-2">
+                      <p className="flex items-center gap-2">
+                        <span>📞</span> +91 90758 40072
+                      </p>
+                      <p className="flex items-center gap-2">
+                        <span>✉️</span> contact@metalchef.com
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
             </div>
           </div>
         </div>

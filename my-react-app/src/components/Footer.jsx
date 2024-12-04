@@ -16,7 +16,7 @@ function Footer() {
                 className="space-y-4"
               >
                 <img 
-                  src="/src/assets/The Metal Chef Logo.png"
+                  src="./assets/The Metal Chef Logo.png"
                   alt="The Metal Chef Logo"
                   className="h-16"
                 />

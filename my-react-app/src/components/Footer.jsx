@@ -1,6 +1,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
+import logo from "../assets/logo.png";
 
 function Footer() {
   return (
@@ -15,11 +16,7 @@ function Footer() {
                 whileInView={{ opacity: 1 }}
                 className="space-y-4"
               >
-                <img 
-                  src="./assets/The Metal Chef Logo.png"
-                  alt="The Metal Chef Logo"
-                  className="h-16"
-                />
+                <img src={logo} alt="The Metal Chef Logo" className="h-16" />
                 <h3 className="text-2xl font-bold gradient-text">
                   The Metal Chef
                 </h3>
@@ -32,23 +29,33 @@ function Footer() {
 
             {/* Quick Links and Social Links Combined */}
             <div className="space-y-4">
-              <h4 className="text-lg font-semibold text-gray-200">Quick Links</h4>
+              <h4 className="text-lg font-semibold text-gray-200">
+                Quick Links
+              </h4>
               <ul className="space-y-2">
                 <li>
-                  <Link to="/" className="text-gray-400 hover:text-white transition-colors">
+                  <Link
+                    to="/"
+                    className="text-gray-400 hover:text-white transition-colors"
+                  >
                     Home
                   </Link>
                 </li>
                 <li>
-                  <Link to="/about" className="text-gray-400 hover:text-white transition-colors">
+                  <Link
+                    to="/about"
+                    className="text-gray-400 hover:text-white transition-colors"
+                  >
                     About Us
                   </Link>
                 </li>
               </ul>
-              
+
               {/* Social Links */}
               <div className="pt-4">
-                <h4 className="text-lg font-semibold text-gray-200 mb-3">Connect</h4>
+                <h4 className="text-lg font-semibold text-gray-200 mb-3">
+                  Connect
+                </h4>
                 <div className="flex space-x-4">
                   {[
                     { name: "LinkedIn", icon: "🔗" },
@@ -70,17 +77,27 @@ function Footer() {
 
             {/* Contact and Office Address */}
             <div className="space-y-4">
-              <h4 className="text-lg font-semibold text-gray-200">Contact & Office</h4>
+              <h4 className="text-lg font-semibold text-gray-200">
+                Contact & Office
+              </h4>
               <div className="text-gray-400 space-y-3">
-                <motion.div whileHover={{ x: 5 }} className="flex items-center space-x-2">
+                <motion.div
+                  whileHover={{ x: 5 }}
+                  className="flex items-center space-x-2"
+                >
                   <span>📞</span>
                   <span>+91 90758 40072</span>
                 </motion.div>
-                <motion.div whileHover={{ x: 5 }} className="flex items-start space-x-2">
+                <motion.div
+                  whileHover={{ x: 5 }}
+                  className="flex items-start space-x-2"
+                >
                   <span className="mt-1">🏢</span>
                   <span>
-                    84, Balaji Vihar<br />
-                    Sanver Road<br />
+                    84, Balaji Vihar
+                    <br />
+                    Sanver Road
+                    <br />
                     Indore
                   </span>
                 </motion.div>
@@ -89,14 +106,22 @@ function Footer() {
 
             {/* Plant Address */}
             <div className="space-y-4">
-              <h4 className="text-lg font-semibold text-gray-200">Plant Address</h4>
-              <motion.div whileHover={{ x: 5 }} className="text-gray-400 space-y-2">
+              <h4 className="text-lg font-semibold text-gray-200">
+                Plant Address
+              </h4>
+              <motion.div
+                whileHover={{ x: 5 }}
+                className="text-gray-400 space-y-2"
+              >
                 <p className="flex items-start space-x-2">
                   <span className="mt-1">🏭</span>
                   <span>
-                    Survey No. 30<br />
-                    Gram Jakhya<br />
-                    Sanver Road<br />
+                    Survey No. 30
+                    <br />
+                    Gram Jakhya
+                    <br />
+                    Sanver Road
+                    <br />
                     Indore
                   </span>
                 </p>

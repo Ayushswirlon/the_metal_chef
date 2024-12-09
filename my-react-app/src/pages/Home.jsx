@@ -1,36 +1,71 @@
-import React, { useMemo, useCallback, useState, useEffect } from "react";
-import { motion } from "framer-motion";
+import React, {
+  useMemo,
+  useCallback,
+  useState,
+  useEffect,
+  useRef,
+} from "react";
+import {
+  motion,
+  useScroll,
+  useTransform,
+  useSpring,
+  useInView,
+} from "framer-motion";
 import { useLoadScript, GoogleMap, Marker } from "@react-google-maps/api";
 import { usePerformanceOptimizations } from "../hooks/usePerformanceOptimizations";
 import { LazyImage } from "../components/LazyImage";
 import "../index.css";
 import AnimatedCounter from "../components/AnimatedCounter";
+import logo from "../assets/logo.png";
+import Aluminium_ingot from "../assets/Aluminium_ingot.jpg";
+import Metal from "../assets/Metal.jpg";
+import Custom from "../assets/Custom.jpg";
+import Sustainable from "../assets/Sustainable.jpg";
+import Quality from "../assets/Quality.jpg";
+import Aluminium_Scrap from "../assets/Aluminium_Scrap.jpg";
 
 // Extracted components for better performance
-const ServiceCard = React.memo(({ service, index, shouldReduceMotion }) => (
-  <motion.div
-    key={index}
-    initial={shouldReduceMotion ? { opacity: 1 } : { opacity: 0, y: 50 }}
-    whileInView={shouldReduceMotion ? { opacity: 1, y: 0 } : { opacity: 1, y: 0 }}
-    transition={{ delay: shouldReduceMotion ? 0 : index * 0.1 }}
-    whileHover={shouldReduceMotion ? {} : { y: -10, scale: 1.02 }}
-    className="bg-gradient-to-br from-zinc-800/50 to-zinc-900/50 p-8 rounded-2xl backdrop-blur-sm border border-gray-700/30 shadow-2xl group hardware-accelerated contain-content"
-  >
-    <div className="text-4xl mb-4 group-hover:scale-110 transition-transform">
-      {service.icon}
+const ServiceCard = React.memo(({ service, index }) => (
+  <div className="flex-shrink-0 w-[300px] md:w-[400px] group">
+    <div className="bg-gradient-to-br from-zinc-800/50 to-zinc-900/50 p-8 rounded-2xl backdrop-blur-sm border border-gray-700/30 shadow-2xl transition-all duration-300 group-hover:border-gray-500/50 h-full">
+      {/* Image container */}
+      <div className="relative w-full h-48 mb-6 overflow-hidden rounded-xl bg-gradient-to-br from-zinc-700/30 to-zinc-800/30">
+        {service.image ? (
+          <img
+            src={service.image}
+            alt={service.title}
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <span className="text-6xl transform group-hover:scale-110 transition-transform duration-300">
+              {service.icon}
+            </span>
+          </div>
+        )}
+      </div>
+
+      {/* Content */}
+      <div className="relative z-10">
+        <h3 className="text-2xl font-semibold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-gray-100 to-gray-300 group-hover:from-white group-hover:to-gray-200 transition-all duration-300">
+          {service.title}
+        </h3>
+        <p className="text-gray-400 leading-relaxed group-hover:text-gray-300 transition-colors duration-300">
+          {service.description}
+        </p>
+      </div>
     </div>
-    <h3 className="text-xl font-semibold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-gray-100 to-gray-300">
-      {service.title}
-    </h3>
-    <p className="text-gray-400 leading-relaxed">{service.description}</p>
-  </motion.div>
+  </div>
 ));
 
 const StatCard = React.memo(({ stat, index, shouldReduceMotion }) => (
   <motion.div
     key={index}
     initial={shouldReduceMotion ? { opacity: 1 } : { opacity: 0, y: 20 }}
-    whileInView={shouldReduceMotion ? { opacity: 1, y: 0 } : { opacity: 1, y: 0 }}
+    whileInView={
+      shouldReduceMotion ? { opacity: 1, y: 0 } : { opacity: 1, y: 0 }
+    }
     transition={{ delay: shouldReduceMotion ? 0 : index * 0.1 }}
     className="bg-gradient-to-br from-zinc-800/50 to-zinc-900/50 p-6 rounded-2xl backdrop-blur-sm border border-gray-700/30 text-center group hover:border-gray-500/50 transition-all duration-300 contain-content"
   >
@@ -48,105 +83,156 @@ const StatCard = React.memo(({ stat, index, shouldReduceMotion }) => (
   </motion.div>
 ));
 
+// AutoScroll component with optimized performance
+const AutoScroll = React.memo(({ children }) => {
+  const scrollRef = useRef(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [startX, setStartX] = useState(0);
+  const [scrollLeft, setScrollLeft] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
+
+  useEffect(() => {
+    const scrollContainer = scrollRef.current;
+    let lastTime = null;
+    let animationId;
+
+    const animate = (currentTime) => {
+      if (!lastTime) lastTime = currentTime;
+      const delta = currentTime - lastTime;
+
+      if (!isDragging && !isPaused && scrollContainer) {
+        scrollContainer.scrollLeft += (0.5 * delta) / 8;
+
+        if (
+          scrollContainer.scrollLeft >=
+          scrollContainer.scrollWidth - scrollContainer.clientWidth
+        ) {
+          scrollContainer.scrollLeft = 0;
+        }
+      }
+
+      lastTime = currentTime;
+      animationId = requestAnimationFrame(animate);
+    };
+
+    animationId = requestAnimationFrame(animate);
+    return () => {
+      if (animationId) {
+        cancelAnimationFrame(animationId);
+      }
+    };
+  }, [isDragging, isPaused]);
+
+  const handleMouseDown = useCallback((e) => {
+    setIsDragging(true);
+    setStartX(e.pageX - scrollRef.current.offsetLeft);
+    setScrollLeft(scrollRef.current.scrollLeft);
+  }, []);
+
+  const handleMouseUp = useCallback(() => {
+    setIsDragging(false);
+  }, []);
+
+  const handleMouseMove = useCallback(
+    (e) => {
+      if (!isDragging) return;
+      e.preventDefault();
+      const x = e.pageX - scrollRef.current.offsetLeft;
+      const walk = (x - startX) * 2;
+      scrollRef.current.scrollLeft = scrollLeft - walk;
+    },
+    [isDragging, startX, scrollLeft]
+  );
+
+  const handleMouseEnter = useCallback(() => setIsPaused(true), []);
+  const handleMouseLeave = useCallback(() => {
+    setIsPaused(false);
+    setIsDragging(false);
+  }, []);
+
+  return (
+    <div
+      ref={scrollRef}
+      className="overflow-x-hidden relative cursor-grab active:cursor-grabbing"
+      onMouseDown={handleMouseDown}
+      onMouseUp={handleMouseUp}
+      onMouseLeave={handleMouseLeave}
+      onMouseEnter={handleMouseEnter}
+      onMouseMove={handleMouseMove}
+    >
+      {children}
+    </div>
+  );
+});
+
 function Home() {
   const { shouldReduceMotion, isMobile } = usePerformanceOptimizations();
   const [currentServiceIndex, setCurrentServiceIndex] = useState(0);
 
   // Memoized handlers
-  const handleDiscoverClick = useCallback(() => {
-    // Implement your click handler
-  }, []);
 
   // Memoized map options
-  const mapOptions = useMemo(() => ({
-    disableDefaultUI: isMobile,
-    zoomControl: !isMobile,
-    styles: [
-      {
-        featureType: "all",
-        elementType: "geometry",
-        stylers: [{ color: "#242f3e" }],
-      },
-      // ... other styles
-    ],
-  }), [isMobile]);
+  const mapOptions = useMemo(
+    () => ({
+      disableDefaultUI: isMobile,
+      zoomControl: !isMobile,
+      styles: [
+        {
+          featureType: "all",
+          elementType: "geometry",
+          stylers: [{ color: "#242f3e" }],
+        },
+        // ... other styles
+      ],
+    }),
+    [isMobile]
+  );
 
   // Memoize static data
-  const companies = useMemo(
-    () => [
-      {
-        name: "MetalTech Solutions",
-        logo: "https://assets.website-files.com/64060ad81a09c81fe88f0df8/64060c7dfb3d0c4ab82b7046_Logo-white.svg",
-      },
-      {
-        name: "Precision Alloys",
-        logo: "https://assets.website-files.com/64060ad81a09c81fe88f0df8/64060c7d7d5b0c0d594f6f13_Logo-white.svg",
-      },
-      {
-        name: "IndustrialForge",
-        logo: "https://assets.website-files.com/64060ad81a09c81fe88f0df8/64060c7d1a09c8b0c68f1377_Logo-white.svg",
-      },
-      {
-        name: "NextGen Metals",
-        logo: "https://assets.website-files.com/64060ad81a09c81fe88f0df8/64060c7d6c1c8a012e06e1b1_Logo-white.svg",
-      },
-      {
-        name: "EcoMetal Dynamics",
-        logo: "https://assets.website-files.com/64060ad81a09c81fe88f0df8/64060c7d7c8d708c86a91f17_Logo-white.svg",
-      },
-      {
-        name: "AlphaCore Industries",
-        logo: "https://assets.website-files.com/64060ad81a09c81fe88f0df8/64060c7d1a09c868968f1376_Logo-white.svg",
-      },
-      {
-        name: "SteelTech Pro",
-        logo: "https://assets.website-files.com/64060ad81a09c81fe88f0df8/64060c7d6c1c8a3d7e06e1b0_Logo-white.svg",
-      },
-      {
-        name: "MetalWorks Global",
-        logo: "https://assets.website-files.com/64060ad81a09c81fe88f0df8/64060c7d7d5b0c0d594f6f13_Logo-white.svg",
-      },
-    ],
-    []
-  );
 
   const services = useMemo(
     () => [
       {
         title: "Aluminum Ingot Manufacturing",
         description:
-          "Premium quality aluminum ingots with precise composition control and industry-leading purity levels.",
+          "Premium quality aluminum ingots with precise composition control and industry-leading purity levels. Our state-of-the-art facilities ensure consistent quality.",
         icon: "🏭",
+        image: Aluminium_ingot, // Prepared for future image integration
       },
       {
         title: "Scrap Collection",
         description:
-          "Professional aluminum scrap collection service with efficient logistics and fair pricing.",
+          "Professional aluminum scrap collection service with efficient logistics and fair pricing. We handle everything from industrial waste to consumer recycling.",
         icon: "♻️",
+        image: Aluminium_Scrap,
       },
       {
         title: "Metal Processing",
         description:
-          "State-of-the-art processing facilities for various grades of aluminum scrap.",
+          "State-of-the-art processing facilities for various grades of aluminum scrap. Our advanced technology ensures maximum recovery and minimal waste.",
         icon: "⚙️",
+        image: Metal,
       },
       {
         title: "Quality Testing",
         description:
-          "Advanced laboratory testing ensuring highest quality standards.",
+          "Advanced laboratory testing ensuring highest quality standards. Every batch undergoes rigorous testing to meet international specifications.",
         icon: "🔍",
+        image: Quality,
       },
       {
         title: "Sustainable Practices",
         description:
-          "Eco-friendly recycling processes with minimal environmental impact.",
+          "Eco-friendly recycling processes with minimal environmental impact. We're committed to reducing our carbon footprint while maximizing efficiency.",
         icon: "🌱",
+        image: Sustainable,
       },
       {
         title: "Custom Solutions",
         description:
-          "Tailored metal processing solutions for specific industry needs.",
+          "Tailored metal processing solutions for specific industry needs. Our experts work with you to develop the perfect solution for your requirements.",
         icon: "⚡",
+        image: Custom,
       },
     ],
     []
@@ -195,6 +281,23 @@ function Home() {
 
   const mapCenter = useMemo(() => ({ lat: 28.7041, lng: 77.1025 }), []);
 
+  const servicesContainerRef = useRef(null);
+  const { scrollXProgress } = useScroll({
+    container: servicesContainerRef,
+  });
+
+  const smoothProgress = useSpring(scrollXProgress, {
+    stiffness: 100,
+    damping: 30,
+    restDelta: 0.001,
+  });
+
+  // Quadruple the services array for smoother infinite scroll
+  const repeatedServices = useMemo(
+    () => [...services, ...services, ...services, ...services],
+    [services]
+  );
+
   return (
     <div className="min-h-screen text-white relative overflow-hidden">
       {/* Main background with CSS containment */}
@@ -207,7 +310,8 @@ function Home() {
           style={{
             width: isMobile ? "120vw" : "140vw",
             height: isMobile ? "120vh" : "140vh",
-            background: "radial-gradient(circle, rgba(255,255,255,0.05) 0%, transparent 60%)",
+            background:
+              "radial-gradient(circle, rgba(255,255,255,0.05) 0%, transparent 60%)",
             filter: isMobile ? "blur(60px)" : "blur(90px)",
             contain: "strict",
           }}
@@ -220,7 +324,9 @@ function Home() {
         <div className="min-h-screen flex flex-col items-center justify-center px-4 relative">
           <motion.div {...motionProps} className="text-center space-y-4">
             <motion.div
-              initial={shouldReduceMotion ? { opacity: 1 } : { scale: 0.9, opacity: 0 }}
+              initial={
+                shouldReduceMotion ? { opacity: 1 } : { scale: 0.9, opacity: 0 }
+              }
               animate={{ scale: 1, opacity: 1 }}
               transition={{
                 duration: shouldReduceMotion ? 0.3 : 0.8,
@@ -229,10 +335,10 @@ function Home() {
               }}
               className="mb-2"
             >
-              <img 
-                src="/src/assets/The Metal Chef Logo.png"
+              <img
+                src={logo}
                 alt="The Metal Chef Logo"
-                className="h-48 md:h-64 w-auto mx-auto"
+                className="h-24 mx-auto"
               />
             </motion.div>
 
@@ -356,8 +462,12 @@ function Home() {
         <div className="py-16 px-4">
           {/* Achievements Counter Section */}
           <motion.div
-            initial={shouldReduceMotion ? { opacity: 1 } : { opacity: 0, y: 20 }}
-            whileInView={shouldReduceMotion ? { opacity: 1, y: 0 } : { opacity: 1, y: 0 }}
+            initial={
+              shouldReduceMotion ? { opacity: 1 } : { opacity: 0, y: 20 }
+            }
+            whileInView={
+              shouldReduceMotion ? { opacity: 1, y: 0 } : { opacity: 1, y: 0 }
+            }
             transition={{ duration: shouldReduceMotion ? 0.3 : 0.8 }}
           >
             <h2 className="text-4xl font-bold text-center mb-16 bg-clip-text text-transparent bg-gradient-to-r from-gray-100 to-gray-300">
@@ -383,76 +493,51 @@ function Home() {
         </div>
 
         {/* Services Section */}
-        <div className="py-16 px-4">
-          <motion.h2
-            initial={shouldReduceMotion ? { opacity: 1 } : { opacity: 0, y: 20 }}
-            whileInView={shouldReduceMotion ? { opacity: 1, y: 0 } : { opacity: 1, y: 0 }}
-            transition={{ duration: shouldReduceMotion ? 0.3 : 0.8 }}
-            className="text-4xl font-bold text-center mb-16 bg-clip-text text-transparent bg-gradient-to-r from-gray-100 to-gray-300"
-          >
-            Our Services
-          </motion.h2>
-
-          {/* Service Scroller */}
-          <div className="max-w-3xl mx-auto relative">
-            {/* Left Arrow */}
-            <button
-              onClick={() => setCurrentServiceIndex((prev) => 
-                prev === 0 ? services.length - 1 : prev - 1
-              )}
-              className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-12 z-10 text-white/70 hover:text-white transition-colors"
-              aria-label="Previous service"
-            >
-              <motion.div
-                whileHover={{ x: -5 }}
-                className="bg-zinc-800/50 p-3 rounded-full backdrop-blur-sm border border-gray-700/30"
-              >
-                ←
-              </motion.div>
-            </button>
-
-            {/* Service Content */}
-            <motion.div
-              key={currentServiceIndex}
-              initial={{ opacity: 0, x: 100 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -100 }}
-              transition={{ duration: 0.5 }}
-              className="bg-gradient-to-br from-zinc-800/50 to-zinc-900/50 p-8 rounded-2xl backdrop-blur-sm border border-gray-700/30 shadow-2xl group hardware-accelerated contain-content"
-            >
-              <div className="text-6xl mb-6 text-center group-hover:scale-110 transition-transform">
-                {services[currentServiceIndex].icon}
-              </div>
-              <h3 className="text-2xl font-semibold mb-4 text-center bg-clip-text text-transparent bg-gradient-to-r from-gray-100 to-gray-300">
-                {services[currentServiceIndex].title}
-              </h3>
-              <p className="text-gray-400 leading-relaxed text-center text-lg">
-                {services[currentServiceIndex].description}
+        <div className="py-24 relative overflow-hidden">
+          <div className="max-w-7xl mx-auto">
+            <div className="text-center mb-16 px-4">
+              <h2 className="text-4xl md:text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-gray-100 to-gray-300">
+                Our Services
+              </h2>
+              <p className="mt-4 text-xl text-gray-400 max-w-2xl mx-auto">
+                Explore our comprehensive solutions
               </p>
-            </motion.div>
+            </div>
 
-            {/* Right Arrow */}
-            <button
-              onClick={() => setCurrentServiceIndex((prev) => 
-                (prev + 1) % services.length
-              )}
-              className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-12 z-10 text-white/70 hover:text-white transition-colors"
-              aria-label="Next service"
-            >
-              <motion.div
-                whileHover={{ x: 5 }}
-                className="bg-zinc-800/50 p-3 rounded-full backdrop-blur-sm border border-gray-700/30"
-              >
-                →
-              </motion.div>
-            </button>
+            {/* Services Carousel with Auto Scroll and Drag Support */}
+            <div className="relative">
+              <AutoScroll>
+                <div className="flex space-x-6 px-4 pb-8">
+                  {repeatedServices.map((service, index) => (
+                    <ServiceCard
+                      key={`${service.title}-${index}`}
+                      service={service}
+                      index={index}
+                    />
+                  ))}
+                </div>
+              </AutoScroll>
+
+              {/* Gradient Overlays */}
+              <div className="absolute left-0 top-0 bottom-0 w-32 bg-gradient-to-r from-zinc-900 to-transparent pointer-events-none" />
+              <div className="absolute right-0 top-0 bottom-0 w-32 bg-gradient-to-l from-zinc-900 to-transparent pointer-events-none" />
+            </div>
+
+            {/* Interaction Hint */}
+            <div className="text-center mt-6">
+              <p className="text-gray-400 text-sm">
+                Hover to pause • Drag to explore
+              </p>
+            </div>
           </div>
         </div>
 
         {/* Visit Our Facility Section */}
         <div className="py-16 px-4">
           <motion.h2
-            initial={shouldReduceMotion ? { opacity: 1 } : { opacity: 0, y: 20 }}
+            initial={
+              shouldReduceMotion ? { opacity: 1 } : { opacity: 0, y: 20 }
+            }
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8 }}
             className="text-4xl font-bold text-center mb-16 bg-clip-text text-transparent bg-gradient-to-r from-gray-100 to-gray-300"
@@ -464,7 +549,9 @@ function Home() {
             <div className="grid md:grid-cols-2 gap-8 items-start">
               {/* Map Section */}
               <motion.div
-                initial={shouldReduceMotion ? { opacity: 1 } : { opacity: 0, x: -50 }}
+                initial={
+                  shouldReduceMotion ? { opacity: 1 } : { opacity: 0, x: -50 }
+                }
                 whileInView={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.8 }}
                 className="h-[400px] rounded-2xl overflow-hidden border border-gray-700/30"
@@ -483,7 +570,9 @@ function Home() {
 
               {/* Address Information */}
               <motion.div
-                initial={shouldReduceMotion ? { opacity: 1 } : { opacity: 0, x: 50 }}
+                initial={
+                  shouldReduceMotion ? { opacity: 1 } : { opacity: 0, x: 50 }
+                }
                 whileInView={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.8 }}
                 className="bg-gradient-to-br from-zinc-800/50 to-zinc-900/50 p-8 rounded-2xl backdrop-blur-sm border border-gray-700/30 h-[400px] flex flex-col justify-center"

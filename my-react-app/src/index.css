@@ -283,16 +283,25 @@ html {
     backface-visibility: hidden;
     perspective: 1000;
   }
-  
+
   .contain-content {
     contain: content;
   }
-  
+
   .contain-paint {
     contain: paint;
   }
-  
+
   .contain-strict {
     contain: strict;
+  }
+}
+@layer utilities {
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
   }
 }

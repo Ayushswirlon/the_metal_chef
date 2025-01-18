@@ -11,8 +11,13 @@ import {
   useTransform,
   useSpring,
   useInView,
+  AnimatePresence,
 } from "framer-motion";
-import { useLoadScript, GoogleMap, Marker } from "@react-google-maps/api";
+import {
+  useLoadScript,
+  GoogleMap,
+  Marker as GoogleMarker,
+} from "@react-google-maps/api";
 import { usePerformanceOptimizations } from "../hooks/usePerformanceOptimizations";
 import { LazyImage } from "../components/LazyImage";
 import "../index.css";
@@ -24,10 +29,31 @@ import Custom from "../assets/Custom.jpg";
 import Sustainable from "../assets/Sustainable.jpg";
 import Quality from "../assets/Quality.jpg";
 import Aluminium_Scrap from "../assets/Aluminium_Scrap.jpg";
+import { ServiceDetailModal } from "../components/ServiceDetailModal";
+import ServicesSection from "../components/ServicesSection";
+import {
+  MapContainer,
+  TileLayer,
+  Marker as LeafletMarker,
+  Popup,
+} from "react-leaflet";
+import "leaflet/dist/leaflet.css"; // Import Leaflet CSS
+import L from "leaflet"; // Import Leaflet for marker icon
+import RecyclingImage from "../assets/Aluminium_Scrap.jpg"; // Add a relevant image for the section
+
+// Define the coordinates for the office and plant addresses
+const officeLocation = { lat: 22.7196, lng: 75.8577 }; // Example coordinates for Office Address
+const plantLocation = { lat: 22.7196, lng: 75.8577 }; // Example coordinates for Plant Address
+
+// Set the initial map center to the office location
+const mapCenter = officeLocation; // Change this to plantLocation if you want to center on the plant
 
 // Extracted components for better performance
-const ServiceCard = React.memo(({ service, index }) => (
-  <div className="flex-shrink-0 w-[300px] md:w-[400px] group">
+const ServiceCard = React.memo(({ service, index, onClick }) => (
+  <div
+    className="flex-shrink-0 w-[300px] md:w-[400px] group relative overflow-hidden rounded-2xl shadow-lg transition-all duration-300 cursor-pointer"
+    onClick={() => onClick(service)}
+  >
     <div className="bg-gradient-to-br from-zinc-800/50 to-zinc-900/50 p-8 rounded-2xl backdrop-blur-sm border border-gray-700/30 shadow-2xl transition-all duration-300 group-hover:border-gray-500/50 h-full">
       {/* Image container */}
       <div className="relative w-full h-48 mb-6 overflow-hidden rounded-xl bg-gradient-to-br from-zinc-700/30 to-zinc-800/30">
@@ -90,6 +116,7 @@ const AutoScroll = React.memo(({ children }) => {
   const [startX, setStartX] = useState(0);
   const [scrollLeft, setScrollLeft] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
+  const isMobile = window.innerWidth <= 768; // Define mobile breakpoint
 
   useEffect(() => {
     const scrollContainer = scrollRef.current;
@@ -100,7 +127,8 @@ const AutoScroll = React.memo(({ children }) => {
       if (!lastTime) lastTime = currentTime;
       const delta = currentTime - lastTime;
 
-      if (!isDragging && !isPaused && scrollContainer) {
+      // Only auto-scroll on desktop
+      if (!isMobile && !isDragging && !isPaused && scrollContainer) {
         scrollContainer.scrollLeft += (0.5 * delta) / 8;
 
         if (
@@ -121,46 +149,83 @@ const AutoScroll = React.memo(({ children }) => {
         cancelAnimationFrame(animationId);
       }
     };
-  }, [isDragging, isPaused]);
+  }, [isDragging, isPaused, isMobile]);
 
-  const handleMouseDown = useCallback((e) => {
+  // Touch and mouse event handlers
+  const handleStart = useCallback((clientX) => {
+    if (!scrollRef.current) return;
     setIsDragging(true);
-    setStartX(e.pageX - scrollRef.current.offsetLeft);
+    setStartX(clientX - scrollRef.current.offsetLeft);
     setScrollLeft(scrollRef.current.scrollLeft);
   }, []);
 
-  const handleMouseUp = useCallback(() => {
-    setIsDragging(false);
-  }, []);
-
-  const handleMouseMove = useCallback(
-    (e) => {
-      if (!isDragging) return;
-      e.preventDefault();
-      const x = e.pageX - scrollRef.current.offsetLeft;
+  const handleMove = useCallback(
+    (clientX) => {
+      if (!isDragging || !scrollRef.current) return;
+      const x = clientX - scrollRef.current.offsetLeft;
       const walk = (x - startX) * 2;
       scrollRef.current.scrollLeft = scrollLeft - walk;
     },
     [isDragging, startX, scrollLeft]
   );
 
-  const handleMouseEnter = useCallback(() => setIsPaused(true), []);
-  const handleMouseLeave = useCallback(() => {
-    setIsPaused(false);
+  const handleEnd = useCallback(() => {
     setIsDragging(false);
   }, []);
+
+  // Add touch event handlers for mobile
+  useEffect(() => {
+    const container = scrollRef.current;
+    if (!container) return;
+
+    const handleTouchStart = (e) => {
+      handleStart(e.touches[0].clientX);
+    };
+
+    const handleTouchMove = (e) => {
+      handleMove(e.touches[0].clientX);
+    };
+
+    const handleTouchEnd = () => {
+      handleEnd();
+    };
+
+    // Mouse events for desktop
+    container.addEventListener("mousedown", (e) => handleStart(e.clientX));
+    container.addEventListener("mousemove", (e) => handleMove(e.clientX));
+    container.addEventListener("mouseup", handleEnd);
+    container.addEventListener("mouseleave", handleEnd);
+
+    // Touch events for mobile
+    container.addEventListener("touchstart", handleTouchStart);
+    container.addEventListener("touchmove", handleTouchMove);
+    container.addEventListener("touchend", handleTouchEnd);
+
+    return () => {
+      container.removeEventListener("mousedown", (e) => handleStart(e.clientX));
+      container.removeEventListener("mousemove", (e) => handleMove(e.clientX));
+      container.removeEventListener("mouseup", handleEnd);
+      container.removeEventListener("mouseleave", handleEnd);
+
+      container.removeEventListener("touchstart", handleTouchStart);
+      container.removeEventListener("touchmove", handleTouchMove);
+      container.removeEventListener("touchend", handleTouchEnd);
+    };
+  }, [handleStart, handleMove, handleEnd]);
 
   return (
     <div
       ref={scrollRef}
-      className="overflow-x-hidden relative cursor-grab active:cursor-grabbing"
-      onMouseDown={handleMouseDown}
-      onMouseUp={handleMouseUp}
-      onMouseLeave={handleMouseLeave}
-      onMouseEnter={handleMouseEnter}
-      onMouseMove={handleMouseMove}
+      className={`
+        overflow-x-scroll scrollbar-hide 
+        ${isMobile ? "cursor-grab active:cursor-grabbing" : "cursor-default"}
+      `}
+      style={{
+        scrollBehavior: "smooth",
+        WebkitOverflowScrolling: "touch", // Smooth scrolling on iOS
+      }}
     >
-      {children}
+      <div className="flex space-x-6 px-4 pb-8 inline-flex">{children}</div>
     </div>
   );
 });
@@ -168,6 +233,7 @@ const AutoScroll = React.memo(({ children }) => {
 function Home() {
   const { shouldReduceMotion, isMobile } = usePerformanceOptimizations();
   const [currentServiceIndex, setCurrentServiceIndex] = useState(0);
+  const [selectedService, setSelectedService] = useState(null);
 
   // Memoized handlers
 
@@ -195,9 +261,25 @@ function Home() {
       {
         title: "Aluminum Ingot Manufacturing",
         description:
-          "Premium quality aluminum ingots with precise composition control and industry-leading purity levels. Our state-of-the-art facilities ensure consistent quality.",
+          "Premium quality aluminum ingots with precise composition control and industry-leading purity levels.",
         icon: "🏭",
-        image: Aluminium_ingot, // Prepared for future image integration
+        image: Aluminium_ingot,
+        detailedDescription: `
+          Our aluminum ingot manufacturing process is a testament to precision engineering. 
+          We utilize cutting-edge technology to ensure:
+          • Highest purity levels (99.7% aluminum content)
+          • Consistent chemical composition
+          • Rigorous quality control measures
+          • Advanced casting techniques
+          
+          Each ingot is meticulously crafted to meet the most demanding industrial specifications.
+        `,
+        keyFeatures: [
+          "99.7% Purity",
+          "Consistent Composition",
+          "Advanced Casting",
+          "Precision Engineering",
+        ],
       },
       {
         title: "Scrap Collection",
@@ -279,8 +361,6 @@ function Home() {
     loadingElement: <div>Loading...</div>,
   });
 
-  const mapCenter = useMemo(() => ({ lat: 28.7041, lng: 77.1025 }), []);
-
   const servicesContainerRef = useRef(null);
   const { scrollXProgress } = useScroll({
     container: servicesContainerRef,
@@ -297,6 +377,14 @@ function Home() {
     () => [...services, ...services, ...services, ...services],
     [services]
   );
+
+  // Add ref for Services section
+  const servicesRef = useRef(null);
+
+  // Scroll handler function
+  const scrollToServices = () => {
+    servicesRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
 
   return (
     <div className="min-h-screen text-white relative overflow-hidden">
@@ -368,6 +456,7 @@ function Home() {
               {...hoverProps}
               whileTap={shouldReduceMotion ? {} : { scale: 0.95 }}
               className="relative overflow-hidden rounded-full group hardware-accelerated"
+              onClick={scrollToServices}
             >
               <span className="relative z-10 bg-gradient-to-r from-gray-200 via-gray-300 to-gray-200 text-zinc-900 px-8 py-4 rounded-full font-semibold inline-block transition-all duration-300">
                 Discover Our Craft
@@ -493,43 +582,8 @@ function Home() {
         </div>
 
         {/* Services Section */}
-        <div className="py-24 relative overflow-hidden">
-          <div className="max-w-7xl mx-auto">
-            <div className="text-center mb-16 px-4">
-              <h2 className="text-4xl md:text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-gray-100 to-gray-300">
-                Our Services
-              </h2>
-              <p className="mt-4 text-xl text-gray-400 max-w-2xl mx-auto">
-                Explore our comprehensive solutions
-              </p>
-            </div>
-
-            {/* Services Carousel with Auto Scroll and Drag Support */}
-            <div className="relative">
-              <AutoScroll>
-                <div className="flex space-x-6 px-4 pb-8">
-                  {repeatedServices.map((service, index) => (
-                    <ServiceCard
-                      key={`${service.title}-${index}`}
-                      service={service}
-                      index={index}
-                    />
-                  ))}
-                </div>
-              </AutoScroll>
-
-              {/* Gradient Overlays */}
-              <div className="absolute left-0 top-0 bottom-0 w-32 bg-gradient-to-r from-zinc-900 to-transparent pointer-events-none" />
-              <div className="absolute right-0 top-0 bottom-0 w-32 bg-gradient-to-l from-zinc-900 to-transparent pointer-events-none" />
-            </div>
-
-            {/* Interaction Hint */}
-            <div className="text-center mt-6">
-              <p className="text-gray-400 text-sm">
-                Hover to pause • Drag to explore
-              </p>
-            </div>
-          </div>
+        <div ref={servicesRef}>
+          <ServicesSection />
         </div>
 
         {/* Visit Our Facility Section */}
@@ -556,16 +610,27 @@ function Home() {
                 transition={{ duration: 0.8 }}
                 className="h-[400px] rounded-2xl overflow-hidden border border-gray-700/30"
               >
-                {isLoaded && (
-                  <GoogleMap
-                    zoom={15}
-                    center={mapCenter}
-                    mapContainerClassName="w-full h-full"
-                    options={mapOptions}
-                  >
-                    <Marker position={mapCenter} />
-                  </GoogleMap>
-                )}
+                <MapContainer
+                  center={mapCenter}
+                  zoom={15}
+                  className="w-full h-full"
+                >
+                  <TileLayer
+                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                  />
+                  <LeafletMarker position={officeLocation}>
+                    <Popup>
+                      Office Address: 84, Balaji Vihar, Sanver Road, Indore
+                    </Popup>
+                  </LeafletMarker>
+                  <LeafletMarker position={plantLocation}>
+                    <Popup>
+                      Plant Address: Survey No. 30, Gram Jakhya, Sanver Road,
+                      Indore
+                    </Popup>
+                  </LeafletMarker>
+                </MapContainer>
               </motion.div>
 
               {/* Address Information */}
@@ -626,6 +691,16 @@ function Home() {
 
       {/* Overlay gradient for depth */}
       <div className="fixed inset-0 pointer-events-none bg-gradient-to-b from-transparent via-transparent to-zinc-900/50" />
+
+      {/* Service Detail Modal */}
+      <AnimatePresence>
+        {selectedService && (
+          <ServiceDetailModal
+            service={selectedService}
+            onClose={() => setSelectedService(null)}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

@@ -141,7 +141,7 @@ function Footer() {
           {/* Copyright */}
           <div className="mt-6 pt-4 border-t border-gray-700/30 text-center">
             <p className="text-gray-400">
-              © 2024 The Metal Chef. All rights reserved.
+              © 2025 The Metal Chef. All rights reserved.
             </p>
           </div>
         </div>

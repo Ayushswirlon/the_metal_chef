@@ -13,11 +13,6 @@ import {
   useInView,
   AnimatePresence,
 } from "framer-motion";
-import {
-  useLoadScript,
-  GoogleMap,
-  Marker as GoogleMarker,
-} from "@react-google-maps/api";
 import { usePerformanceOptimizations } from "../hooks/usePerformanceOptimizations";
 import { LazyImage } from "../components/LazyImage";
 import "../index.css";
@@ -37,15 +32,22 @@ import {
   Marker as LeafletMarker,
   Popup,
 } from "react-leaflet";
-import "leaflet/dist/leaflet.css"; // Import Leaflet CSS
-import L from "leaflet"; // Import Leaflet for marker icon
-import RecyclingImage from "../assets/Aluminium_Scrap.jpg"; // Add a relevant image for the section
+import "leaflet/dist/leaflet.css"; // Ensure Leaflet CSS is imported
+import L from "leaflet";
+import markerIconPng from "leaflet/dist/images/marker-icon.png"; // Direct import for marker icon
+import markerShadowPng from "leaflet/dist/images/marker-shadow.png"; // Direct import for shadow
 
-// Define the coordinates for the office and plant addresses
-const officeLocation = { lat:22.809957, lng: 75.850776 }; // Example coordinates for Office Address
+// Define custom Leaflet icon
+const customIcon = new L.Icon({
+  iconUrl: markerIconPng,
+  shadowUrl: markerShadowPng,
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+});
 
-// Set the initial map center to the office location
-const mapCenter = officeLocation; // Change this to plantLocation if you want to center on the plant
+// Define coordinates for the office location
+const officeLocation = { lat: 22.809957, lng: 75.850776 };
+const mapCenter = officeLocation;
 
 // Extracted components for better performance
 const ServiceCard = React.memo(({ service, index, onClick }) => (
@@ -54,7 +56,6 @@ const ServiceCard = React.memo(({ service, index, onClick }) => (
     onClick={() => onClick(service)}
   >
     <div className="bg-gradient-to-br from-zinc-800/50 to-zinc-900/50 p-8 rounded-2xl backdrop-blur-sm border border-gray-700/30 shadow-2xl transition-all duration-300 group-hover:border-gray-500/50 h-full">
-      {/* Image container */}
       <div className="relative w-full h-48 mb-6 overflow-hidden rounded-xl bg-gradient-to-br from-zinc-700/30 to-zinc-800/30">
         {service.image ? (
           <img
@@ -70,8 +71,6 @@ const ServiceCard = React.memo(({ service, index, onClick }) => (
           </div>
         )}
       </div>
-
-      {/* Content */}
       <div className="relative z-10">
         <h3 className="text-2xl font-semibold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-gray-100 to-gray-300 group-hover:from-white group-hover:to-gray-200 transition-all duration-300">
           {service.title}
@@ -108,14 +107,14 @@ const StatCard = React.memo(({ stat, index, shouldReduceMotion }) => (
   </motion.div>
 ));
 
-// AutoScroll component with optimized performance
+// AutoScroll component
 const AutoScroll = React.memo(({ children }) => {
   const scrollRef = useRef(null);
   const [isDragging, setIsDragging] = useState(false);
   const [startX, setStartX] = useState(0);
   const [scrollLeft, setScrollLeft] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
-  const isMobile = window.innerWidth <= 768; // Define mobile breakpoint
+  const isMobile = window.innerWidth <= 768;
 
   useEffect(() => {
     const scrollContainer = scrollRef.current;
@@ -126,10 +125,8 @@ const AutoScroll = React.memo(({ children }) => {
       if (!lastTime) lastTime = currentTime;
       const delta = currentTime - lastTime;
 
-      // Only auto-scroll on desktop
       if (!isMobile && !isDragging && !isPaused && scrollContainer) {
         scrollContainer.scrollLeft += (0.5 * delta) / 8;
-
         if (
           scrollContainer.scrollLeft >=
           scrollContainer.scrollWidth - scrollContainer.clientWidth
@@ -150,7 +147,6 @@ const AutoScroll = React.memo(({ children }) => {
     };
   }, [isDragging, isPaused, isMobile]);
 
-  // Touch and mouse event handlers
   const handleStart = useCallback((clientX) => {
     if (!scrollRef.current) return;
     setIsDragging(true);
@@ -172,30 +168,18 @@ const AutoScroll = React.memo(({ children }) => {
     setIsDragging(false);
   }, []);
 
-  // Add touch event handlers for mobile
   useEffect(() => {
     const container = scrollRef.current;
     if (!container) return;
 
-    const handleTouchStart = (e) => {
-      handleStart(e.touches[0].clientX);
-    };
+    const handleTouchStart = (e) => handleStart(e.touches[0].clientX);
+    const handleTouchMove = (e) => handleMove(e.touches[0].clientX);
+    const handleTouchEnd = () => handleEnd();
 
-    const handleTouchMove = (e) => {
-      handleMove(e.touches[0].clientX);
-    };
-
-    const handleTouchEnd = () => {
-      handleEnd();
-    };
-
-    // Mouse events for desktop
     container.addEventListener("mousedown", (e) => handleStart(e.clientX));
     container.addEventListener("mousemove", (e) => handleMove(e.clientX));
     container.addEventListener("mouseup", handleEnd);
     container.addEventListener("mouseleave", handleEnd);
-
-    // Touch events for mobile
     container.addEventListener("touchstart", handleTouchStart);
     container.addEventListener("touchmove", handleTouchMove);
     container.addEventListener("touchend", handleTouchEnd);
@@ -205,7 +189,6 @@ const AutoScroll = React.memo(({ children }) => {
       container.removeEventListener("mousemove", (e) => handleMove(e.clientX));
       container.removeEventListener("mouseup", handleEnd);
       container.removeEventListener("mouseleave", handleEnd);
-
       container.removeEventListener("touchstart", handleTouchStart);
       container.removeEventListener("touchmove", handleTouchMove);
       container.removeEventListener("touchend", handleTouchEnd);
@@ -215,14 +198,10 @@ const AutoScroll = React.memo(({ children }) => {
   return (
     <div
       ref={scrollRef}
-      className={`
-        overflow-x-scroll scrollbar-hide 
-        ${isMobile ? "cursor-grab active:cursor-grabbing" : "cursor-default"}
-      `}
-      style={{
-        scrollBehavior: "smooth",
-        WebkitOverflowScrolling: "touch", // Smooth scrolling on iOS
-      }}
+      className={`overflow-x-scroll scrollbar-hide ${
+        isMobile ? "cursor-grab active:cursor-grabbing" : "cursor-default"
+      }`}
+      style={{ scrollBehavior: "smooth", WebkitOverflowScrolling: "touch" }}
     >
       <div className="flex space-x-6 px-4 pb-8 inline-flex">{children}</div>
     </div>
@@ -233,27 +212,6 @@ function Home() {
   const { shouldReduceMotion, isMobile } = usePerformanceOptimizations();
   const [currentServiceIndex, setCurrentServiceIndex] = useState(0);
   const [selectedService, setSelectedService] = useState(null);
-
-  // Memoized handlers
-
-  // Memoized map options
-  const mapOptions = useMemo(
-    () => ({
-      disableDefaultUI: isMobile,
-      zoomControl: !isMobile,
-      styles: [
-        {
-          featureType: "all",
-          elementType: "geometry",
-          stylers: [{ color: "#242f3e" }],
-        },
-        // ... other styles
-      ],
-    }),
-    [isMobile]
-  );
-
-  // Memoize static data
 
   const services = useMemo(
     () => [
@@ -283,35 +241,35 @@ function Home() {
       {
         title: "Scrap Collection",
         description:
-          "Professional aluminum scrap collection service with efficient logistics and fair pricing. We handle everything from industrial waste to consumer recycling.",
+          "Professional aluminum scrap collection service with efficient logistics and fair pricing.",
         icon: "♻️",
         image: Aluminium_Scrap,
       },
       {
         title: "Metal Processing",
         description:
-          "State-of-the-art processing facilities for various grades of aluminum scrap. Our advanced technology ensures maximum recovery and minimal waste.",
+          "State-of-the-art processing facilities for various grades of aluminum scrap.",
         icon: "⚙️",
         image: Metal,
       },
       {
         title: "Quality Testing",
         description:
-          "Advanced laboratory testing ensuring highest quality standards. Every batch undergoes rigorous testing to meet international specifications.",
+          "Advanced laboratory testing ensuring highest quality standards.",
         icon: "🔍",
         image: Quality,
       },
       {
         title: "Sustainable Practices",
         description:
-          "Eco-friendly recycling processes with minimal environmental impact. We're committed to reducing our carbon footprint while maximizing efficiency.",
+          "Eco-friendly recycling processes with minimal environmental impact.",
         icon: "🌱",
         image: Sustainable,
       },
       {
         title: "Custom Solutions",
         description:
-          "Tailored metal processing solutions for specific industry needs. Our experts work with you to develop the perfect solution for your requirements.",
+          "Tailored metal processing solutions for specific industry needs.",
         icon: "⚡",
         image: Custom,
       },
@@ -322,12 +280,10 @@ function Home() {
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentServiceIndex((prevIndex) => (prevIndex + 1) % services.length);
-    }, 5000); // Change every 5 seconds
-
+    }, 5000);
     return () => clearInterval(interval);
   }, [services.length]);
 
-  // Optimize motion variants based on device capabilities
   const motionProps = useMemo(
     () => ({
       initial: shouldReduceMotion ? { opacity: 1 } : { opacity: 0, y: 20 },
@@ -340,7 +296,6 @@ function Home() {
     [shouldReduceMotion]
   );
 
-  // Optimize hover effects
   const hoverProps = useMemo(
     () => ({
       whileHover: shouldReduceMotion
@@ -353,44 +308,29 @@ function Home() {
     [shouldReduceMotion]
   );
 
-  // Map configuration
-  const { isLoaded } = useLoadScript({
-    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
-    // Load maps API only when needed
-    loadingElement: <div>Loading...</div>,
-  });
-
   const servicesContainerRef = useRef(null);
   const { scrollXProgress } = useScroll({
     container: servicesContainerRef,
   });
-
   const smoothProgress = useSpring(scrollXProgress, {
     stiffness: 100,
     damping: 30,
     restDelta: 0.001,
   });
 
-  // Quadruple the services array for smoother infinite scroll
   const repeatedServices = useMemo(
     () => [...services, ...services, ...services, ...services],
     [services]
   );
 
-  // Add ref for Services section
   const servicesRef = useRef(null);
-
-  // Scroll handler function
   const scrollToServices = () => {
     servicesRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
   return (
     <div className="min-h-screen text-white relative overflow-hidden">
-      {/* Main background with CSS containment */}
       <div className="fixed inset-0 bg-gradient-to-br from-zinc-900 via-zinc-800 to-zinc-900 contain-paint" />
-
-      {/* Optimized ambient glow with CSS containment */}
       <div className="fixed inset-0 contain-paint">
         <div
           className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
@@ -405,7 +345,6 @@ function Home() {
         />
       </div>
 
-      {/* Content container */}
       <div className="relative z-10">
         {/* Hero Section */}
         <div className="min-h-screen flex flex-col items-center justify-center px-4 relative">
@@ -428,14 +367,12 @@ function Home() {
                 className="h-24 mx-auto"
               />
             </motion.div>
-
             <motion.div className="relative inline-block">
               <h1 className="text-5xl md:text-7xl lg:text-8xl font-bold text-center bg-clip-text text-transparent bg-gradient-to-r from-gray-100 via-gray-300 to-gray-100 pb-2 relative z-10">
                 The Metal Chef
               </h1>
               <div className="absolute -inset-2 bg-gradient-to-r from-gray-500 to-gray-300 opacity-10 blur-2xl rounded-full"></div>
             </motion.div>
-
             <motion.p
               initial={
                 shouldReduceMotion ? { opacity: 1 } : { y: 20, opacity: 0 }
@@ -450,7 +387,6 @@ function Home() {
               Crafting Excellence in Aluminum • Transforming Metal into
               Masterpieces
             </motion.p>
-
             <motion.button
               {...hoverProps}
               whileTap={shouldReduceMotion ? {} : { scale: 0.95 }}
@@ -463,8 +399,6 @@ function Home() {
               <div className="absolute inset-0 bg-white/90 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-full" />
             </motion.button>
           </motion.div>
-
-          {/* Scroll Indicator */}
           <motion.div
             initial={shouldReduceMotion ? { opacity: 1 } : { opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -526,12 +460,7 @@ function Home() {
                 whileHover={
                   shouldReduceMotion
                     ? {}
-                    : {
-                        y: -10,
-                        transition: {
-                          duration: shouldReduceMotion ? 0.3 : 0.3,
-                        },
-                      }
+                    : { y: -10, transition: { duration: 0.3 } }
                 }
                 className="bg-gradient-to-br from-zinc-800/50 to-zinc-900/50 p-8 rounded-2xl backdrop-blur-sm border border-gray-700/30 shadow-2xl hover:border-gray-600/50 transition-all duration-300"
               >
@@ -546,9 +475,8 @@ function Home() {
           </div>
         </div>
 
-        {/* Replace Companies Section with Achievements */}
+        {/* Achievements Section */}
         <div className="py-16 px-4">
-          {/* Achievements Counter Section */}
           <motion.div
             initial={
               shouldReduceMotion ? { opacity: 1 } : { opacity: 0, y: 20 }
@@ -561,14 +489,12 @@ function Home() {
             <h2 className="text-4xl font-bold text-center mb-16 bg-clip-text text-transparent bg-gradient-to-r from-gray-100 to-gray-300">
               Our Impact in Numbers
             </h2>
-
             <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
               {[
                 { number: "1000+", label: "Happy Customers", icon: "😊" },
                 { number: "500+", label: "Tons Produced", icon: "🏭" },
                 { number: "99.9", label: "Quality Score", icon: "⭐" },
-                { number: "98%", label: "Customer Satisfaction", icon: "❤️" }
-                
+                { number: "98%", label: "Customer Satisfaction", icon: "❤️" },
               ].map((stat, index) => (
                 <StatCard
                   key={stat.label}
@@ -598,10 +524,8 @@ function Home() {
           >
             Visit Our Facility
           </motion.h2>
-
           <div className="max-w-7xl mx-auto">
             <div className="grid md:grid-cols-2 gap-8 items-start">
-              {/* Map Section */}
               <motion.div
                 initial={
                   shouldReduceMotion ? { opacity: 1 } : { opacity: 0, x: -50 }
@@ -613,22 +537,19 @@ function Home() {
                 <MapContainer
                   center={mapCenter}
                   zoom={15}
-                  className="w-full h-full"
+                  style={{ height: "440px", width: "100%" }}
                 >
                   <TileLayer
                     url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                    attribution='© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                   />
-                  <LeafletMarker position={officeLocation}>
+                  <LeafletMarker position={officeLocation} icon={customIcon}>
                     <Popup>
                       Office Address: 84, Balaji Vihar, Sanver Road, Indore
                     </Popup>
                   </LeafletMarker>
-                  
                 </MapContainer>
               </motion.div>
-
-              {/* Address Information */}
               <motion.div
                 initial={
                   shouldReduceMotion ? { opacity: 1 } : { opacity: 0, x: 50 }
@@ -638,7 +559,6 @@ function Home() {
                 className="bg-gradient-to-br from-zinc-800/50 to-zinc-900/50 p-8 rounded-2xl backdrop-blur-sm border border-gray-700/30 h-[440px] flex flex-col justify-center"
               >
                 <div className="space-y-8">
-                  {/* Office Address */}
                   <div className="space-y-2">
                     <h3 className="text-xl font-semibold text-white flex items-center gap-2">
                       <span>🏢</span> Office & Plant Address
@@ -649,8 +569,6 @@ function Home() {
                       <p>Indore</p>
                     </div>
                   </div>
-
-                  {/* Plant Address */}
                   <div className="space-y-2">
                     <h3 className="text-xl font-semibold text-white flex items-center gap-2">
                       <span>🏭</span> Plant Address
@@ -662,8 +580,6 @@ function Home() {
                       <p>Indore</p>
                     </div>
                   </div>
-
-                  {/* Contact Information */}
                   <div className="space-y-2">
                     <h3 className="text-xl font-semibold text-white flex items-center gap-2">
                       <span>📞</span> Contact Us
@@ -687,10 +603,7 @@ function Home() {
         </div>
       </div>
 
-      {/* Overlay gradient for depth */}
       <div className="fixed inset-0 pointer-events-none bg-gradient-to-b from-transparent via-transparent to-zinc-900/50" />
-
-      {/* Service Detail Modal */}
       <AnimatePresence>
         {selectedService && (
           <ServiceDetailModal

@@ -42,8 +42,7 @@ import L from "leaflet"; // Import Leaflet for marker icon
 import RecyclingImage from "../assets/Aluminium_Scrap.jpg"; // Add a relevant image for the section
 
 // Define the coordinates for the office and plant addresses
-const officeLocation = { lat: 22.7196, lng: 75.8577 }; // Example coordinates for Office Address
-const plantLocation = { lat: 22.7196, lng: 75.8577 }; // Example coordinates for Plant Address
+const officeLocation = { lat:22.809957, lng: 75.850776 }; // Example coordinates for Office Address
 
 // Set the initial map center to the office location
 const mapCenter = officeLocation; // Change this to plantLocation if you want to center on the plant
@@ -565,10 +564,11 @@ function Home() {
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
               {[
-                { number: "10000+", label: "Happy Customers", icon: "😊" },
-                { number: "50000+", label: "Tons Produced", icon: "🏭" },
+                { number: "1000+", label: "Happy Customers", icon: "😊" },
+                { number: "500+", label: "Tons Produced", icon: "🏭" },
                 { number: "99.9", label: "Quality Score", icon: "⭐" },
-                { number: "25+", label: "Years of Excellence", icon: "🏆" },
+                { number: "98%", label: "Customer Satisfaction", icon: "❤️" }
+                
               ].map((stat, index) => (
                 <StatCard
                   key={stat.label}
@@ -608,7 +608,7 @@ function Home() {
                 }
                 whileInView={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.8 }}
-                className="h-[400px] rounded-2xl overflow-hidden border border-gray-700/30"
+                className="h-[440px] rounded-2xl overflow-hidden border border-gray-700/30"
               >
                 <MapContainer
                   center={mapCenter}
@@ -624,12 +624,7 @@ function Home() {
                       Office Address: 84, Balaji Vihar, Sanver Road, Indore
                     </Popup>
                   </LeafletMarker>
-                  <LeafletMarker position={plantLocation}>
-                    <Popup>
-                      Plant Address: Survey No. 30, Gram Jakhya, Sanver Road,
-                      Indore
-                    </Popup>
-                  </LeafletMarker>
+                  
                 </MapContainer>
               </motion.div>
 
@@ -640,13 +635,13 @@ function Home() {
                 }
                 whileInView={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.8 }}
-                className="bg-gradient-to-br from-zinc-800/50 to-zinc-900/50 p-8 rounded-2xl backdrop-blur-sm border border-gray-700/30 h-[400px] flex flex-col justify-center"
+                className="bg-gradient-to-br from-zinc-800/50 to-zinc-900/50 p-8 rounded-2xl backdrop-blur-sm border border-gray-700/30 h-[440px] flex flex-col justify-center"
               >
                 <div className="space-y-8">
                   {/* Office Address */}
                   <div className="space-y-2">
                     <h3 className="text-xl font-semibold text-white flex items-center gap-2">
-                      <span>🏢</span> Office Address
+                      <span>🏢</span> Office & Plant Address
                     </h3>
                     <div className="text-gray-300 ml-8">
                       <p>84, Balaji Vihar</p>
@@ -676,6 +671,9 @@ function Home() {
                     <div className="text-gray-300 ml-8 space-y-2">
                       <p className="flex items-center gap-2">
                         <span>📞</span> +91 90758 40072
+                      </p>
+                      <p className="flex items-center gap-2">
+                        <span>📞</span> +91 70001 72905
                       </p>
                       <p className="flex items-center gap-2">
                         <span>✉️</span> contact@metalchef.com

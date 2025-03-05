@@ -1,6 +1,6 @@
 import React, { useEffect } from "react";
 import { motion } from "framer-motion";
-
+import HappyWorkers from "../assets/Happy_Workers.jpeg"
 function About() {
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -30,7 +30,7 @@ function About() {
             </h1>
             <div className="w-24 h-1 bg-gradient-to-r from-gray-400 to-gray-600 mx-auto"></div>
             <span className="block text-xl text-gray-300">
-              Pioneering Aluminum Excellence Since 1995
+              Pioneering Aluminum Excellence
             </span>
             <p className="text-gray-400 max-w-2xl mx-auto">
               Crafting Premium Aluminum Solutions for a Sustainable Future
@@ -49,7 +49,7 @@ function About() {
                   scale: 1.05,
                   boxShadow: "0 0 30px rgba(255,255,255,0.2)",
                 }}
-                src="https://placehold.co/400x300"
+                src={HappyWorkers}
                 alt="Factory Interior"
                 className="rounded-2xl w-full"
               />
@@ -83,8 +83,8 @@ function About() {
               {/* Stats Grid */}
               <div className="grid grid-cols-3 gap-4 pt-6">
                 {[
-                  { number: "25+", label: "Years of Excellence" },
-                  { number: "50K+", label: "Tons Annual Production" },
+                  { number: "1000+", label: "Happy Customers" },
+                  { number: "500+", label: "Tons Annual Production" },
                   { number: "99.9%", label: "Purity Achieved" },
                 ].map((stat, index) => (
                   <motion.div

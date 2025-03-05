@@ -87,6 +87,15 @@ function Footer() {
                 >
                   <span>📞</span>
                   <span>+91 90758 40072</span>
+                 
+                </motion.div>
+                <motion.div
+                  whileHover={{ x: 5 }}
+                  className="flex items-center space-x-2"
+                >
+                  <span>📞</span>
+                  <span>+91 70001 72905</span>
+                 
                 </motion.div>
                 <motion.div
                   whileHover={{ x: 5 }}

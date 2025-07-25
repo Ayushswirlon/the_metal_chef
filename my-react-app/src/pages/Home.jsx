@@ -571,7 +571,7 @@ function Home() {
                   </div>
                   <div className="space-y-2">
                     <h3 className="text-xl font-semibold text-white flex items-center gap-2">
-                      <span>🏭</span> Plant Address
+                      <span>🏭</span> Animal Address
                     </h3>
                     <div className="text-gray-300 ml-8">
                       <p>Survey No. 30</p>
